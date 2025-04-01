@@ -5,8 +5,8 @@ import "time"
 type Plan string
 
 const (
-	Free     Plan = "free"
-	Advanced Plan = "advanced"
+	FreePlan     Plan = "free"
+	AdvancedPlan Plan = "advanced"
 )
 
 type Habit struct {
@@ -37,9 +37,10 @@ type User struct {
 	CheckIns            []CheckIn `json:"checkIns"`
 	Plan                Plan      `json:"plan" gorm:"default:free"`
 	Provider            string    `json:"provider"`
-	Name                string    `json:"name"`
+	NickName            *string   `json:"nickname"`
+	Name                *string   `json:"name"`
 	Email               string    `json:"email"`
-	ImageUrl            string    `json:"imageUrl"`
+	ImageUrl            *string   `json:"imageUrl"`
 	RefreshToken        *string   `json:"refreshToken"`
 	RefreshTokenExpires time.Time `json:"refreshTokenExpires"`
 	CreatedAt           time.Time `json:"createdAt"`
