@@ -12,6 +12,7 @@ const (
 type Habit struct {
 	ID          uint      `json:"id" gorm:"primaryKey"`
 	Name        string    `json:"string"`
+	Slug        string    `json:"slug"`
 	Description *string   `json:"description"`
 	IsPinned    bool      `json:"isPinned"`
 	CheckIns    []CheckIn `json:"checkIn"`
