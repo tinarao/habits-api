@@ -10,6 +10,17 @@ import (
 	"github.com/markbates/goth/gothic"
 )
 
+func SessionsMiddleware(c *gin.Context) {
+	u, err := GetUserFromSession(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	c.Set("user", u)
+	c.Next()
+}
+
 func SetupRoutes(r *gin.RouterGroup) {
 	oauth := r.Group("/auth")
 

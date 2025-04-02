@@ -2,10 +2,12 @@ package auth
 
 import (
 	"fmt"
+	"hbapi/internal/db"
 	"log/slog"
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/yandex"
@@ -52,4 +54,37 @@ func Init() {
 	goth.UseProviders(
 		yandex.New(ydxClientKey, ydxSecret, fmt.Sprintf("%s/yandex", oauthRedirectPath)),
 	)
+}
+
+func GetUserFromSession(c *gin.Context) (user *db.User, err error) {
+	session, err := store.Get(c.Request, "session")
+	if err != nil {
+		return nil, err
+	}
+
+	data, ok := session.Values["user"]
+	if !ok {
+		return nil, fmt.Errorf("failed to parse a session")
+	}
+
+	su := data.(goth.User)
+
+	u := &db.User{}
+	dbr := db.Client.Where("email = ?", su.Email).First(&user)
+	if dbr.Error != nil {
+		slog.Error("failed to find a user", "error", dbr.Error.Error())
+		return nil, fmt.Errorf("failed to find a user: %s", dbr.Error.Error())
+	}
+
+	return u, nil
+}
+
+func GetUserFromCtx(c *gin.Context) (user *db.User, err error) {
+	u, ok := c.Get("user")
+	if !ok {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	ctxUser := u.(*db.User)
+	return ctxUser, nil
 }
