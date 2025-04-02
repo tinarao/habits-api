@@ -25,10 +25,9 @@ var (
 )
 
 func Init() {
-	secret := os.Getenv("SECRET")
 	port := os.Getenv("PORT")
 	dbpath := os.Getenv("DB_PATH")
-	if secret == "" || port == "" || dbpath == "" {
+	if port == "" || dbpath == "" {
 		slog.Error("SECRET or PORT .env var is not set")
 		os.Exit(1)
 	}

@@ -2,8 +2,9 @@ package main
 
 import (
 	"hbapi/internal/db"
+	"hbapi/modules/auth"
+	"hbapi/router"
 	"log/slog"
-	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -16,13 +17,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	db.Init()
-
 	srv := gin.Default()
 
-	srv.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "Yee")
-	})
+	db.Init()
+	auth.Init()
+	router.SetupRoutes(srv)
 
 	port := os.Getenv("PORT")
 	err := srv.Run(port)
