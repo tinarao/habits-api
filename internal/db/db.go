@@ -24,4 +24,6 @@ func Init() {
 	}
 
 	Client = db
+
+	db.AutoMigrate(&User{}, &Habit{}, &CheckIn{})
 }

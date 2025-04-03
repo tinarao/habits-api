@@ -11,7 +11,8 @@ import (
 func SetupRoutes(r *gin.RouterGroup) {
 	checkins := r.Group("/checkins")
 
-	checkins.GET("/:habitSlug", auth.SessionsMiddleware, getByHabitSlug)
+	checkins.GET("/habit/:habitSlug", auth.SessionsMiddleware, getByHabitSlug)
+	checkins.GET("/latest", auth.SessionsMiddleware, getLatest)
 	checkins.POST("/:habitSlug", auth.SessionsMiddleware, create)
 }
 
@@ -72,3 +73,12 @@ func getByHabitSlug(c *gin.Context) {
 }
 
 // func getByDate() {}
+func getLatest(c *gin.Context) {
+	checkins, err := GetLatest()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Latest checkins can not be found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"checkins": checkins})
+}

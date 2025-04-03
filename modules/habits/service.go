@@ -47,3 +47,37 @@ func GetBySlug(slug string, user *db.User) (*db.Habit, error) {
 
 	return habit, nil
 }
+
+func Rename(hSlug string, user *db.User, newName string) error {
+	habit, err := GetBySlug(hSlug, user)
+	if err != nil {
+		return err
+	}
+
+	s := slug.Make(newName)
+	habit.Name = newName
+	habit.Slug = s
+
+	dbr := db.Client.Save(&habit)
+	if dbr.Error != nil {
+		slog.Error("failed to rename a habit", "error", dbr.Error.Error())
+		return fmt.Errorf("failed to remove a habit")
+	}
+
+	return nil
+}
+
+func Delete(slug string, user *db.User) error {
+	habit, err := GetBySlug(slug, user)
+	if err != nil {
+		return err
+	}
+
+	dbr := db.Client.Delete(&db.Habit{}, habit.ID)
+	if dbr.Error != nil {
+		slog.Error("failed to delete habit", "error", dbr.Error.Error())
+		return fmt.Errorf("failed to delete habit")
+	}
+
+	return nil
+}

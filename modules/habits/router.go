@@ -14,6 +14,8 @@ func SetupRoutes(r *gin.RouterGroup) {
 	habits.GET("/", auth.SessionsMiddleware, getAll)
 	habits.POST("/", auth.SessionsMiddleware, create)
 	habits.GET("/slug/:slug", auth.SessionsMiddleware, getBySlug)
+	habits.PATCH("/rename/:slug/:newName", auth.SessionsMiddleware, rename)
+	habits.DELETE("/:slug", auth.SessionsMiddleware, delete)
 }
 
 //
@@ -72,4 +74,39 @@ func getBySlug(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"habit": habit})
+}
+
+func delete(c *gin.Context) {
+	slug := c.Param("slug")
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	err = Delete(slug, user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func rename(c *gin.Context) {
+	slug := c.Param("slug")
+	newName := c.Param("newName")
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	err = Rename(slug, user, newName)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
