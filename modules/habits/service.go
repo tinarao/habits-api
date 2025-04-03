@@ -40,7 +40,7 @@ func GetAll(u *db.User) ([]db.Habit, error) {
 
 func GetBySlug(slug string, user *db.User) (*db.Habit, error) {
 	habit := &db.Habit{}
-	dbr := db.Client.Where("slug = ?", slug).Where("user_id = ?", user.ID)
+	dbr := db.Client.Where("slug = ? AND user_id = ?", slug, user.ID).First(&habit)
 	if dbr.Error != nil {
 		return nil, fmt.Errorf("habit not found")
 	}
