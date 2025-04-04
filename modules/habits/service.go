@@ -10,7 +10,9 @@ import (
 
 func Create(dto createDTO, u *db.User) (*db.Habit, error) {
 	slug := slug.Make(dto.Name)
-
+	if dto.Name == "" {
+		return nil, fmt.Errorf("invalid habit name")
+	}
 	habit := &db.Habit{
 		Name:        dto.Name,
 		Description: dto.Description,

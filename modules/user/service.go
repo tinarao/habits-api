@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"hbapi/internal/db"
 	"log/slog"
 
@@ -33,6 +34,10 @@ func FindByEmail(email string) (profile *db.User, exists bool) {
 }
 
 func PersistAccount(u *goth.User) (profile *db.User, err error) {
+	if u == nil || u.Email == "" {
+		return nil, fmt.Errorf("invalid user")
+	}
+
 	user := &db.User{
 		Plan:                db.FreePlan,
 		Provider:            u.Provider,

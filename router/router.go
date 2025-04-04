@@ -2,6 +2,7 @@ package router
 
 import (
 	"hbapi/modules/auth"
+	"hbapi/modules/checkins"
 	"hbapi/modules/habits"
 	"net/http"
 
@@ -17,4 +18,5 @@ func SetupRoutes(r *gin.Engine) {
 	api := r.Group("/api")
 	auth.SetupRoutes(api)
 	habits.SetupRoutes(api)
+	checkins.SetupRoutes(api)
 }

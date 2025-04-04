@@ -40,9 +40,9 @@ func GetByHabit(habitId uint) ([]*db.CheckIn, error) {
 // Returns checkins made in previous 2 days
 func GetLatest() ([]*db.CheckIn, error) {
 	checkins := make([]*db.CheckIn, 0)
-	now := time.Now()
+	now := time.Now().UTC()
 	twoDaysEarlier := now.Add(time.Hour * -48)
-	dbr := db.Client.Where("created_at >= ? AND created_at <= ?", twoDaysEarlier, now).Find(checkins)
+	dbr := db.Client.Where("created_at >= ? AND created_at <= ?", twoDaysEarlier, now).Limit(180).Find(&checkins)
 	if dbr.Error != nil {
 		slog.Error("failed to find latest checkins", "error", dbr.Error.Error())
 		return nil, fmt.Errorf("failed to find latest checkins")

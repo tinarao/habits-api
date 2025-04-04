@@ -1,0 +1,833 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>cmd: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">hbapi/cmd/main.go (0.0%)</option>
+				
+				<option value="file1">hbapi/internal/db/db.go (0.0%)</option>
+				
+				<option value="file2">hbapi/modules/auth/router.go (0.0%)</option>
+				
+				<option value="file3">hbapi/modules/auth/service.go (0.0%)</option>
+				
+				<option value="file4">hbapi/modules/checkins/router.go (0.0%)</option>
+				
+				<option value="file5">hbapi/modules/checkins/service.go (72.7%)</option>
+				
+				<option value="file6">hbapi/modules/habits/router.go (0.0%)</option>
+				
+				<option value="file7">hbapi/modules/habits/service.go (81.6%)</option>
+				
+				<option value="file8">hbapi/modules/user/service.go (80.0%)</option>
+				
+				<option value="file9">hbapi/router/router.go (0.0%)</option>
+				
+				<option value="file10">hbapi/utils/utils.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "hbapi/internal/db"
+        "hbapi/modules/auth"
+        "hbapi/router"
+        "log/slog"
+        "os"
+
+        "github.com/gin-gonic/gin"
+        "github.com/joho/godotenv"
+)
+
+func main() <span class="cov0" title="0">{
+        if err := godotenv.Load(); err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to preload .env vars", "fatal", err.Error())
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">srv := gin.Default()
+
+        db.Init()
+        auth.Init()
+        router.SetupRoutes(srv)
+
+        port := os.Getenv("PORT")
+        err := srv.Run(port)
+        if err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to start a server", "fatal", err.Error())
+                os.Exit(1)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package db
+
+import (
+        "log/slog"
+        "os"
+
+        "gorm.io/driver/sqlite"
+        "gorm.io/gorm"
+        "gorm.io/gorm/logger"
+)
+
+var Client *gorm.DB
+
+func Init() <span class="cov0" title="0">{
+        dbPath := os.Getenv("DB_PATH")
+        if dbPath == "" </span><span class="cov0" title="0">{
+                slog.Error("DB_PATH variable is not present")
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">db, err := gorm.Open(sqlite.Open(dbPath), &amp;gorm.Config{
+                Logger: logger.Default.LogMode(logger.Silent),
+        })
+        if err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to establish connection with db", "fatal", err.Error())
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">Client = db
+
+        db.AutoMigrate(&amp;User{}, &amp;Habit{}, &amp;CheckIn{})</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package auth
+
+import (
+        "hbapi/modules/user"
+        "log/slog"
+        "net/http"
+        "slices"
+
+        "github.com/gin-gonic/gin"
+        "github.com/markbates/goth/gothic"
+)
+
+func SessionsMiddleware(c *gin.Context) <span class="cov0" title="0">{
+        u, err := GetUserFromSession(c)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.Set("user", u)
+        c.Next()</span>
+}
+
+func SetupRoutes(r *gin.RouterGroup) <span class="cov0" title="0">{
+        oauth := r.Group("/auth")
+
+        oauth.GET("/logout", logout)
+        oauth.GET("/login/:provider", login)
+        oauth.GET("/callback/:provider", callback)
+}</span>
+
+func login(c *gin.Context) <span class="cov0" title="0">{
+        provider := c.Param("provider")
+        if !slices.Contains(AvailableProviders, provider) </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+                        "error": "Provider is unknown or temporary unavailable",
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">q := c.Request.URL.Query()
+        q.Add("provider", provider)
+        c.Request.URL.RawQuery = q.Encode()
+
+        gothic.BeginAuthHandler(c.Writer, c.Request)</span>
+}
+
+func logout(c *gin.Context) <span class="cov0" title="0">{
+        err := gothic.Logout(c.Writer, c.Request)
+        if err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to logout", "error", err.Error())
+                c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to destroy session"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.Redirect(http.StatusTemporaryRedirect, "/")</span>
+}
+
+func callback(c *gin.Context) <span class="cov0" title="0">{
+        provider := c.Param("provider")
+        q := c.Request.URL.Query()
+        q.Add("provider", provider)
+        c.Request.URL.RawQuery = q.Encode()
+
+        u, err := gothic.CompleteUserAuth(c.Writer, c.Request)
+        if err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed authorization attempt", "error", err.Error())
+                c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to authorize"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">_, err = user.CompleteAuth(&amp;u)
+        if err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to complete authorization", "error", err.Error())
+                c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to authorize"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">session, _ := store.Get(c.Request, "session")
+        session.Values["user"] = u
+        err = session.Save(c.Request, c.Writer)
+        if err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to save the session", "error", err.Error())
+                c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save session"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.Redirect(http.StatusTemporaryRedirect, "http://localhost:3000/dashboard")</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package auth
+
+import (
+        "fmt"
+        "hbapi/internal/db"
+        "log/slog"
+        "os"
+        "time"
+
+        "github.com/gin-gonic/gin"
+        "github.com/markbates/goth"
+        "github.com/markbates/goth/gothic"
+        "github.com/markbates/goth/providers/yandex"
+        "github.com/michaeljs1990/sqlitestore"
+)
+
+const (
+        COOKIE_MAX_AGE = time.Hour * 24 * 30
+        COOKIE_PATH    = "/"
+)
+
+var (
+        AvailableProviders = []string{"yandex"}
+        store              *sqlitestore.SqliteStore
+)
+
+func Init() <span class="cov0" title="0">{
+        port := os.Getenv("PORT")
+        dbpath := os.Getenv("DB_PATH")
+        if port == "" || dbpath == "" </span><span class="cov0" title="0">{
+                slog.Error("SECRET or PORT .env var is not set")
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">oauthRedirectPath := fmt.Sprintf("http://localhost%s/api/auth/callback", os.Getenv("PORT"))
+
+        var err error
+        store, err = sqlitestore.NewSqliteStore(dbpath, "sessions", COOKIE_PATH, int(COOKIE_MAX_AGE.Seconds()))
+        if err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to create a sessions store", "fatal", err.Error())
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">gothic.Store = store
+
+        ydxSecret := os.Getenv("YANDEX_SECRET")
+        ydxClientKey := os.Getenv("YANDEX_CLIENT_KEY")
+        if ydxClientKey == "" || ydxSecret == "" </span><span class="cov0" title="0">{
+                slog.Error("yandex outh-related vars are not set in .env")
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">goth.UseProviders(
+                yandex.New(ydxClientKey, ydxSecret, fmt.Sprintf("%s/yandex", oauthRedirectPath)),
+        )</span>
+}
+
+func GetUserFromSession(c *gin.Context) (user *db.User, err error) <span class="cov0" title="0">{
+        session, err := store.Get(c.Request, "session")
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">data, ok := session.Values["user"]
+        if !ok </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to parse a session")
+        }</span>
+
+        <span class="cov0" title="0">su := data.(goth.User)
+
+        u := &amp;db.User{}
+        dbr := db.Client.Where("email = ?", su.Email).First(&amp;user)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to find a user", "error", dbr.Error.Error())
+                return nil, fmt.Errorf("failed to find a user: %s", dbr.Error.Error())
+        }</span>
+
+        <span class="cov0" title="0">return u, nil</span>
+}
+
+func GetUserFromCtx(c *gin.Context) (user *db.User, err error) <span class="cov0" title="0">{
+        u, ok := c.Get("user")
+        if !ok </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("Unauthorized")
+        }</span>
+
+        <span class="cov0" title="0">ctxUser := u.(*db.User)
+        return ctxUser, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package checkins
+
+import (
+        "hbapi/modules/auth"
+        "hbapi/modules/habits"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+)
+
+func SetupRoutes(r *gin.RouterGroup) <span class="cov0" title="0">{
+        checkins := r.Group("/checkins")
+
+        checkins.GET("/habit/:habitSlug", auth.SessionsMiddleware, getByHabitSlug)
+        checkins.GET("/latest", auth.SessionsMiddleware, getLatest)
+        checkins.POST("/:habitSlug", auth.SessionsMiddleware, create)
+}</span>
+
+func create(c *gin.Context) <span class="cov0" title="0">{
+        // insert user shit here
+        user, err := auth.GetUserFromCtx(c)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">habitSlug := c.Param("habitSlug")
+        habit, err := habits.GetBySlug(habitSlug, user)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Habit is not found"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">if habit.UserId != user.ID </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Habit is not found"})
+        }</span>
+
+        <span class="cov0" title="0">_, err = Create(user, habit.ID)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Operation failed"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"message": "Created successfully"})</span>
+}
+
+func getByHabitSlug(c *gin.Context) <span class="cov0" title="0">{
+        user, err := auth.GetUserFromCtx(c)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">habitSlug := c.Param("habitSlug")
+        habit, err := habits.GetBySlug(habitSlug, user)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Habit is not found"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">if habit.UserId != user.ID </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Habit is not found"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">checkins, err := GetByHabit(habit.ID)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Habit and/or checkins could not be found"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"checkins": checkins})</span>
+}
+
+// func getByDate() {}
+func getLatest(c *gin.Context) <span class="cov0" title="0">{
+        checkins, err := GetLatest()
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Latest checkins can not be found"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"checkins": checkins})</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package checkins
+
+import (
+        "fmt"
+        "hbapi/internal/db"
+        "log/slog"
+        "time"
+)
+
+func Create(u *db.User, habitId uint) (*db.CheckIn, error) <span class="cov8" title="1">{
+        if u == nil || habitId == 0 </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("invalid user or habit id")
+        }</span>
+
+        <span class="cov8" title="1">s := db.CheckIn{
+                UserId:  u.ID,
+                HabitId: habitId,
+        }
+
+        dbr := db.Client.Create(&amp;s)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to create checkin", "error", dbr.Error.Error())
+                return nil, fmt.Errorf("failed to create checkin")
+        }</span>
+
+        <span class="cov8" title="1">return &amp;s, nil</span>
+}
+
+func GetByHabit(habitId uint) ([]*db.CheckIn, error) <span class="cov8" title="1">{
+        checkins := make([]*db.CheckIn, 0)
+        dbr := db.Client.Where("habit_id = ?", habitId).Find(&amp;checkins)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to retrieve checkins", "error", dbr.Error.Error())
+                return nil, fmt.Errorf("failed to retrieve checkins")
+        }</span>
+
+        <span class="cov8" title="1">return checkins, nil</span>
+}
+
+// Returns checkins made in previous 2 days
+func GetLatest() ([]*db.CheckIn, error) <span class="cov8" title="1">{
+        checkins := make([]*db.CheckIn, 0)
+        now := time.Now().UTC()
+        twoDaysEarlier := now.Add(time.Hour * -48)
+        dbr := db.Client.Where("created_at &gt;= ? AND created_at &lt;= ?", twoDaysEarlier, now).Limit(180).Find(&amp;checkins)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to find latest checkins", "error", dbr.Error.Error())
+                return nil, fmt.Errorf("failed to find latest checkins")
+        }</span>
+
+        <span class="cov8" title="1">return checkins, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package habits
+
+import (
+        "hbapi/modules/auth"
+        "log/slog"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+)
+
+func SetupRoutes(r *gin.RouterGroup) <span class="cov0" title="0">{
+        habits := r.Group("/habits")
+
+        habits.GET("/", auth.SessionsMiddleware, getAll)
+        habits.POST("/", auth.SessionsMiddleware, create)
+        habits.GET("/slug/:slug", auth.SessionsMiddleware, getBySlug)
+        habits.PATCH("/rename/:slug/:newName", auth.SessionsMiddleware, rename)
+        habits.DELETE("/:slug", auth.SessionsMiddleware, delete)
+}</span>
+
+//
+
+func create(c *gin.Context) <span class="cov0" title="0">{
+        user, err := auth.GetUserFromCtx(c)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">dto := &amp;createDTO{}
+
+        if err := c.ShouldBindJSON(&amp;dto); err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Incorrect body data shape"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">created, err := Create(*dto, user)
+        if err != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to create habit", "error", err.Error())
+                c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"message": "Created", "habit": *created})</span>
+}
+
+func getAll(c *gin.Context) <span class="cov0" title="0">{
+        user, err := auth.GetUserFromCtx(c)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">habits, err := GetAll(user)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Failed to retrieve habits"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"habits": habits})</span>
+}
+
+func getBySlug(c *gin.Context) <span class="cov0" title="0">{
+        user, err := auth.GetUserFromCtx(c)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">slug := c.Param("slug")
+        habit, err := GetBySlug(slug, user)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Failed to find specified habit"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.JSON(http.StatusOK, gin.H{"habit": habit})</span>
+}
+
+func delete(c *gin.Context) <span class="cov0" title="0">{
+        slug := c.Param("slug")
+        user, err := auth.GetUserFromCtx(c)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = Delete(slug, user)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.Status(http.StatusOK)</span>
+}
+
+func rename(c *gin.Context) <span class="cov0" title="0">{
+        slug := c.Param("slug")
+        newName := c.Param("newName")
+        user, err := auth.GetUserFromCtx(c)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = Rename(slug, user, newName)
+        if err != nil </span><span class="cov0" title="0">{
+                c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">c.Status(http.StatusOK)</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package habits
+
+import (
+        "fmt"
+        "hbapi/internal/db"
+        "log/slog"
+
+        "github.com/gosimple/slug"
+)
+
+func Create(dto createDTO, u *db.User) (*db.Habit, error) <span class="cov8" title="1">{
+        slug := slug.Make(dto.Name)
+        if dto.Name == "" </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("invalid habit name")
+        }</span>
+        <span class="cov8" title="1">habit := &amp;db.Habit{
+                Name:        dto.Name,
+                Description: dto.Description,
+                IsPinned:    false,
+                UserId:      u.ID,
+                Slug:        slug,
+        }
+
+        dbr := db.Client.Create(habit)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to create a habit")
+        }</span>
+
+        <span class="cov8" title="1">return habit, nil</span>
+}
+
+func GetAll(u *db.User) ([]db.Habit, error) <span class="cov8" title="1">{
+        habits := make([]db.Habit, 0)
+        dbr := db.Client.Where("user_id = ?", u.ID).Find(&amp;habits)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to retrieve []habit", "error", dbr.Error.Error())
+                return nil, fmt.Errorf("failedailed to retrieve \"%s\" habits", *u.NickName)
+        }</span>
+
+        <span class="cov8" title="1">return habits, nil</span>
+}
+
+func GetBySlug(slug string, user *db.User) (*db.Habit, error) <span class="cov8" title="1">{
+        habit := &amp;db.Habit{}
+        dbr := db.Client.Where("slug = ? AND user_id = ?", slug, user.ID).First(&amp;habit)
+        if dbr.Error != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("habit not found")
+        }</span>
+
+        <span class="cov8" title="1">return habit, nil</span>
+}
+
+func Rename(hSlug string, user *db.User, newName string) error <span class="cov8" title="1">{
+        habit, err := GetBySlug(hSlug, user)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">s := slug.Make(newName)
+        habit.Name = newName
+        habit.Slug = s
+
+        dbr := db.Client.Save(&amp;habit)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to rename a habit", "error", dbr.Error.Error())
+                return fmt.Errorf("failed to remove a habit")
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func Delete(slug string, user *db.User) error <span class="cov8" title="1">{
+        habit, err := GetBySlug(slug, user)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">dbr := db.Client.Delete(&amp;db.Habit{}, habit.ID)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                slog.Error("failed to delete habit", "error", dbr.Error.Error())
+                return fmt.Errorf("failed to delete habit")
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package user
+
+import (
+        "fmt"
+        "hbapi/internal/db"
+        "log/slog"
+
+        "github.com/markbates/goth"
+)
+
+func CompleteAuth(u *goth.User) (profile *db.User, err error) <span class="cov8" title="1">{
+        account, exists := FindByEmail(u.Email)
+        if !exists </span><span class="cov8" title="1">{
+                acc, err := PersistAccount(u)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">return acc, nil</span>
+        }
+
+        <span class="cov0" title="0">return account, nil</span>
+}
+
+func FindByEmail(email string) (profile *db.User, exists bool) <span class="cov8" title="1">{
+        user := &amp;db.User{}
+        dbr := db.Client.Where("email = ?", email).First(&amp;user)
+        if dbr.Error != nil </span><span class="cov8" title="1">{
+                slog.Error("db error", "error", dbr.Error.Error())
+                return nil, false
+        }</span>
+
+        <span class="cov0" title="0">return user, true</span>
+}
+
+func PersistAccount(u *goth.User) (profile *db.User, err error) <span class="cov8" title="1">{
+        if u == nil || u.Email == "" </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("invalid user")
+        }</span>
+
+        <span class="cov8" title="1">user := &amp;db.User{
+                Plan:                db.FreePlan,
+                Provider:            u.Provider,
+                Name:                &amp;u.Name,
+                Email:               u.Email,
+                ImageUrl:            &amp;u.AvatarURL,
+                RefreshToken:        &amp;u.RefreshToken,
+                RefreshTokenExpires: u.ExpiresAt,
+        }
+
+        dbr := db.Client.Create(user)
+        if dbr.Error != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return user, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package router
+
+import (
+        "hbapi/modules/auth"
+        "hbapi/modules/checkins"
+        "hbapi/modules/habits"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+)
+
+func SetupRoutes(r *gin.Engine) <span class="cov0" title="0">{
+        r.GET("/hc", func(c *gin.Context) </span><span class="cov0" title="0">{
+                c.String(http.StatusOK, "Alive")
+        }</span>)
+
+        // Modules
+        <span class="cov0" title="0">api := r.Group("/api")
+        auth.SetupRoutes(api)
+        habits.SetupRoutes(api)
+        checkins.SetupRoutes(api)</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package utils
+
+import (
+        "fmt"
+        "hbapi/internal/db"
+        "hbapi/modules/auth"
+        "path/filepath"
+        "runtime"
+
+        "github.com/joho/godotenv"
+)
+
+func SetupTestEnv() <span class="cov0" title="0">{
+        rootpath, err := GetRootPath()
+        if err != nil </span><span class="cov0" title="0">{
+                panic(fmt.Sprintf("failed to get root path: %v", err))</span>
+        }
+
+        <span class="cov0" title="0">envFilepath := filepath.Join(rootpath, ".env")
+        if err := godotenv.Load(envFilepath); err != nil </span><span class="cov0" title="0">{
+                panic(fmt.Sprintf("failed to load env file: %v", err))</span>
+        }
+
+        <span class="cov0" title="0">db.Init()
+        auth.Init()</span>
+}
+
+func GetRootPath() (string, error) <span class="cov0" title="0">{
+        _, filename, _, ok := runtime.Caller(0)
+        if !ok </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("failed to get current file path")
+        }</span>
+
+        <span class="cov0" title="0">root := filepath.Dir(filepath.Dir(filename))
+        return root, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
