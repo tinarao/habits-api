@@ -17,8 +17,9 @@ func Create(dto createDTO, u *db.User) (*db.Habit, error) {
 		Name:        dto.Name,
 		Description: dto.Description,
 		IsPinned:    false,
-		UserId:      u.ID,
 		Slug:        slug,
+		User:        *u,
+		UserId:      u.ID,
 	}
 
 	dbr := db.Client.Create(habit)

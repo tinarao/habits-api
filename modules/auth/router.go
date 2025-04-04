@@ -27,6 +27,7 @@ func SetupRoutes(r *gin.RouterGroup) {
 	oauth.GET("/logout", logout)
 	oauth.GET("/login/:provider", login)
 	oauth.GET("/callback/:provider", callback)
+	oauth.GET("/me", SessionsMiddleware, me)
 }
 
 func login(c *gin.Context) {
@@ -86,4 +87,13 @@ func callback(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusTemporaryRedirect, "http://localhost:3000/dashboard")
+}
+
+func me(c *gin.Context) {
+	u, err := GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": u})
 }

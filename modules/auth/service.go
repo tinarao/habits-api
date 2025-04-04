@@ -27,7 +27,8 @@ var (
 func Init() {
 	port := os.Getenv("PORT")
 	dbpath := os.Getenv("DB_PATH")
-	if port == "" || dbpath == "" {
+	secret := os.Getenv("SECRET")
+	if port == "" || dbpath == "" || secret == "" {
 		slog.Error("SECRET or PORT .env var is not set")
 		os.Exit(1)
 	}
@@ -35,7 +36,13 @@ func Init() {
 	oauthRedirectPath := fmt.Sprintf("http://localhost%s/api/auth/callback", os.Getenv("PORT"))
 
 	var err error
-	store, err = sqlitestore.NewSqliteStore(dbpath, "sessions", COOKIE_PATH, int(COOKIE_MAX_AGE.Seconds()))
+	store, err = sqlitestore.NewSqliteStore(
+		dbpath,
+		"sessions",
+		COOKIE_PATH,
+		int(COOKIE_MAX_AGE.Seconds()),
+		[]byte(secret),
+	)
 	if err != nil {
 		slog.Error("failed to create a sessions store", "fatal", err.Error())
 		os.Exit(1)
@@ -69,7 +76,7 @@ func GetUserFromSession(c *gin.Context) (user *db.User, err error) {
 	su := data.(goth.User)
 
 	u := &db.User{}
-	dbr := db.Client.Where("email = ?", su.Email).First(&user)
+	dbr := db.Client.Where("email = ?", su.Email).First(&u)
 	if dbr.Error != nil {
 		slog.Error("failed to find a user", "error", dbr.Error.Error())
 		return nil, fmt.Errorf("failed to find a user: %s", dbr.Error.Error())
