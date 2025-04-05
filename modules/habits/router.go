@@ -12,8 +12,10 @@ func SetupRoutes(r *gin.RouterGroup) {
 	habits := r.Group("/habits")
 
 	habits.GET("/", auth.SessionsMiddleware, getAll)
-	habits.POST("/", auth.SessionsMiddleware, create)
 	habits.GET("/slug/:slug", auth.SessionsMiddleware, getBySlug)
+	habits.GET("/pin", auth.SessionsMiddleware, getPinned)
+	habits.POST("/", auth.SessionsMiddleware, create)
+	habits.PATCH("/pin/:slug", auth.SessionsMiddleware, togglePin)
 	habits.PATCH("/rename/:slug/:newName", auth.SessionsMiddleware, rename)
 	habits.DELETE("/:slug", auth.SessionsMiddleware, delete)
 }
@@ -76,6 +78,22 @@ func getBySlug(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"habit": habit})
 }
 
+func getPinned(c *gin.Context) {
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	habits, err := GetPinned(user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "failed to get pinned habits"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"habits": habits})
+}
+
 func delete(c *gin.Context) {
 	slug := c.Param("slug")
 	user, err := auth.GetUserFromCtx(c)
@@ -106,6 +124,22 @@ func rename(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func togglePin(c *gin.Context) {
+	slug := c.Param("slug")
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	err = TogglePin(slug, user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 	}
 
 	c.Status(http.StatusOK)

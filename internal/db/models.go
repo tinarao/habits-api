@@ -15,7 +15,7 @@ type Habit struct {
 	Slug        string    `json:"slug"`
 	Description *string   `json:"description"`
 	IsPinned    bool      `json:"isPinned"`
-	CheckIns    []CheckIn `json:"checkIn"`
+	CheckIns    []CheckIn `json:"checkIns"`
 	User        User      `json:"user"`
 	UserId      uint      `json:"userId"`
 	CreatedAt   time.Time `json:"createdAt"`

@@ -31,11 +31,10 @@ func Create(dto createDTO, u *db.User) (*db.Habit, error) {
 }
 
 func GetAll(u *db.User) ([]db.Habit, error) {
-	habits := make([]db.Habit, 0)
-	dbr := db.Client.Where("user_id = ?", u.ID).Find(&habits)
+	var habits []db.Habit
+	dbr := db.Client.Preload("CheckIns").Where("user_id = ?", u.ID).Find(&habits)
 	if dbr.Error != nil {
-		slog.Error("failed to retrieve []habit", "error", dbr.Error.Error())
-		return nil, fmt.Errorf("failedailed to retrieve \"%s\" habits", *u.NickName)
+		return nil, fmt.Errorf("failed to fetch habits")
 	}
 
 	return habits, nil
@@ -49,6 +48,16 @@ func GetBySlug(slug string, user *db.User) (*db.Habit, error) {
 	}
 
 	return habit, nil
+}
+
+func GetPinned(user *db.User) ([]db.Habit, error) {
+	var habits []db.Habit
+	dbr := db.Client.Where("is_pinned = ?", true).Find(&habits)
+	if dbr.Error != nil {
+		return nil, fmt.Errorf("failed to get pinned habits")
+	}
+
+	return habits, nil
 }
 
 func Rename(hSlug string, user *db.User, newName string) error {
@@ -65,6 +74,22 @@ func Rename(hSlug string, user *db.User, newName string) error {
 	if dbr.Error != nil {
 		slog.Error("failed to rename a habit", "error", dbr.Error.Error())
 		return fmt.Errorf("failed to remove a habit")
+	}
+
+	return nil
+}
+
+func TogglePin(slug string, u *db.User) error {
+	habit, err := GetBySlug(slug, u)
+	if err != nil {
+		return err
+	}
+
+	habit.IsPinned = !habit.IsPinned
+	dbr := db.Client.Save(&habit)
+	if dbr.Error != nil {
+		slog.Error("failed to toggle pin on habit", "error", dbr.Error.Error())
+		return fmt.Errorf("failed to toggle pin")
 	}
 
 	return nil
