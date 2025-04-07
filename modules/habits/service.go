@@ -3,13 +3,19 @@ package habits
 import (
 	"fmt"
 	"hbapi/internal/db"
+	"hbapi/internal/paywall"
 	"log/slog"
 
 	"github.com/gosimple/slug"
 )
 
 func Create(dto createDTO, u *db.User) (*db.Habit, error) {
-	slug := slug.Make(dto.Name)
+	err := paywall.ProtectCreate(u)
+	if err != nil {
+		return nil, err
+	}
+
+	slug := slug.Make(fmt.Sprintf("%d-%s", u.ID, dto.Name))
 	if dto.Name == "" {
 		return nil, fmt.Errorf("invalid habit name")
 	}
@@ -140,6 +146,27 @@ func GetUncheckedHabits(localDate string, user *db.User) ([]db.Habit, error) {
 	if dbr.Error != nil {
 		slog.Error("failed to fetch unchecked habits", "error", dbr.Error.Error())
 		return nil, fmt.Errorf("failed to fetch unchecked habits")
+	}
+
+	return habits, nil
+}
+
+// GetMostCheckedHabits returns habits sorted by check-in count in descending order
+func GetMostCheckedHabits(user *db.User, limit int) ([]db.Habit, error) {
+	var habits []db.Habit
+	dbr := db.Client.
+		Select("habits.*, COUNT(check_ins.id) as checkin_count").
+		Joins("LEFT JOIN check_ins ON habits.id = check_ins.habit_id").
+		Where("habits.user_id = ?", user.ID).
+		Group("habits.id").
+		Order("checkin_count DESC").
+		Limit(limit).
+		Preload("CheckIns").
+		Find(&habits)
+
+	if dbr.Error != nil {
+		slog.Error("failed to fetch most checked habits", "error", dbr.Error.Error())
+		return nil, fmt.Errorf("failed to fetch most checked habits")
 	}
 
 	return habits, nil

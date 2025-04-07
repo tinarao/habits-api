@@ -15,10 +15,14 @@ func SetupRoutes(r *gin.RouterGroup) {
 	habits.GET("/slug/:slug", auth.SessionsMiddleware, getBySlug)
 	habits.GET("/pin", auth.SessionsMiddleware, getPinned)
 	habits.GET("/unchecked/:localDateIso", auth.SessionsMiddleware, getUnchecked)
+	habits.GET("/most-checked", auth.SessionsMiddleware, getMostCheckedHabits)
+
 	habits.POST("/", auth.SessionsMiddleware, create)
+
 	habits.PATCH("/pin/:slug", auth.SessionsMiddleware, togglePin)
 	habits.PATCH("/remind/:slug", auth.SessionsMiddleware, toggleRemind)
 	habits.PATCH("/rename/:slug/:newName", auth.SessionsMiddleware, rename)
+
 	habits.DELETE("/:slug", auth.SessionsMiddleware, delete)
 }
 
@@ -176,6 +180,24 @@ func getUnchecked(c *gin.Context) {
 	habits, err := GetUncheckedHabits(localDate, user)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "failed to get unchecked habits"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"habits": habits})
+}
+
+func getMostCheckedHabits(c *gin.Context) {
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Second parameter should be dynamic. Maybe query?
+	// Too lazy rn
+	habits, err := GetMostCheckedHabits(user, 2)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "failed to get most checked habits"})
 		return
 	}
 
