@@ -20,6 +20,7 @@ func Create(dto createDTO, u *db.User) (*db.Habit, error) {
 		Slug:        slug,
 		User:        *u,
 		UserId:      u.ID,
+		Remind:      dto.Remind,
 	}
 
 	dbr := db.Client.Create(habit)
@@ -42,7 +43,7 @@ func GetAll(u *db.User) ([]db.Habit, error) {
 
 func GetBySlug(slug string, user *db.User) (*db.Habit, error) {
 	habit := &db.Habit{}
-	dbr := db.Client.Where("slug = ? AND user_id = ?", slug, user.ID).First(&habit)
+	dbr := db.Client.Preload("CheckIns").Where("slug = ? AND user_id = ?", slug, user.ID).First(&habit)
 	if dbr.Error != nil {
 		return nil, fmt.Errorf("habit not found")
 	}
@@ -79,6 +80,22 @@ func Rename(hSlug string, user *db.User, newName string) error {
 	return nil
 }
 
+func ToggleRemind(slug string, u *db.User) error {
+	habit, err := GetBySlug(slug, u)
+	if err != nil {
+		return err
+	}
+
+	habit.Remind = !habit.Remind
+	dbr := db.Client.Save(&habit)
+	if dbr.Error != nil {
+		slog.Error("failed to toggle remind on habit", "error", dbr.Error.Error())
+		return fmt.Errorf("failed to toggle remind")
+	}
+
+	return nil
+}
+
 func TogglePin(slug string, u *db.User) error {
 	habit, err := GetBySlug(slug, u)
 	if err != nil {
@@ -108,4 +125,22 @@ func Delete(slug string, user *db.User) error {
 	}
 
 	return nil
+}
+
+// Habits without checkin where date is today
+func GetUncheckedHabits(localDate string, user *db.User) ([]db.Habit, error) {
+	dateOnly := localDate[:10]
+
+	var habits []db.Habit
+	dbr := db.Client.
+		Joins("LEFT JOIN check_ins ON habits.id = check_ins.habit_id AND DATE(check_ins.created_at) = ?", dateOnly).
+		Where("check_ins.id IS NULL AND habits.user_id = ?", user.ID).
+		Find(&habits)
+
+	if dbr.Error != nil {
+		slog.Error("failed to fetch unchecked habits", "error", dbr.Error.Error())
+		return nil, fmt.Errorf("failed to fetch unchecked habits")
+	}
+
+	return habits, nil
 }

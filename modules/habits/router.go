@@ -14,8 +14,10 @@ func SetupRoutes(r *gin.RouterGroup) {
 	habits.GET("/", auth.SessionsMiddleware, getAll)
 	habits.GET("/slug/:slug", auth.SessionsMiddleware, getBySlug)
 	habits.GET("/pin", auth.SessionsMiddleware, getPinned)
+	habits.GET("/unchecked/:localDateIso", auth.SessionsMiddleware, getUnchecked)
 	habits.POST("/", auth.SessionsMiddleware, create)
 	habits.PATCH("/pin/:slug", auth.SessionsMiddleware, togglePin)
+	habits.PATCH("/remind/:slug", auth.SessionsMiddleware, toggleRemind)
 	habits.PATCH("/rename/:slug/:newName", auth.SessionsMiddleware, rename)
 	habits.DELETE("/:slug", auth.SessionsMiddleware, delete)
 }
@@ -140,7 +142,42 @@ func togglePin(c *gin.Context) {
 	err = TogglePin(slug, user)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func toggleRemind(c *gin.Context) {
+	slug := c.Param("slug")
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	err = ToggleRemind(slug, user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func getUnchecked(c *gin.Context) {
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	localDate := c.Param("localDateIso")
+	habits, err := GetUncheckedHabits(localDate, user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "failed to get unchecked habits"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"habits": habits})
 }
