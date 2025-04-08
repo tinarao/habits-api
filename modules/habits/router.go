@@ -35,6 +35,12 @@ func create(c *gin.Context) {
 		return
 	}
 
+	isAllowed := IsUserAllowedToCreate(user)
+	if !isAllowed {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Перейдите на расширенный план, чтобы создать больше привычек"})
+		return
+	}
+
 	dto := &createDTO{}
 
 	if err := c.ShouldBindJSON(&dto); err != nil {

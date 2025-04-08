@@ -86,7 +86,7 @@ func callback(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusTemporaryRedirect, "http://localhost:3000/dashboard")
+	c.Redirect(http.StatusTemporaryRedirect, "http://localhost:3000/app")
 }
 
 func me(c *gin.Context) {

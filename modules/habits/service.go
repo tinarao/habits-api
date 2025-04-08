@@ -6,8 +6,18 @@ import (
 	"hbapi/internal/paywall"
 	"log/slog"
 
-	"github.com/gosimple/slug"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 )
+
+func IsUserAllowedToCreate(u *db.User) bool {
+	var count int64 = 0
+	db.Client.Model(&db.Habit{}).Where("user_id = ?").Count(&count)
+	if u.Plan == db.FreePlan && count >= 5 {
+		return false
+	}
+
+	return true
+}
 
 func Create(dto createDTO, u *db.User) (*db.Habit, error) {
 	err := paywall.ProtectCreate(u)
@@ -15,15 +25,13 @@ func Create(dto createDTO, u *db.User) (*db.Habit, error) {
 		return nil, err
 	}
 
-	slug := slug.Make(fmt.Sprintf("%d-%s", u.ID, dto.Name))
-	if dto.Name == "" {
-		return nil, fmt.Errorf("invalid habit name")
-	}
+	uuid, _ := gonanoid.New()
+
 	habit := &db.Habit{
 		Name:        dto.Name,
 		Description: dto.Description,
 		IsPinned:    false,
-		Slug:        slug,
+		Slug:        uuid,
 		User:        *u,
 		UserId:      u.ID,
 		Remind:      dto.Remind,
@@ -73,9 +81,9 @@ func Rename(hSlug string, user *db.User, newName string) error {
 		return err
 	}
 
-	s := slug.Make(newName)
+	uuid, _ := gonanoid.New()
 	habit.Name = newName
-	habit.Slug = s
+	habit.Slug = uuid
 
 	dbr := db.Client.Save(&habit)
 	if dbr.Error != nil {
@@ -88,6 +96,11 @@ func Rename(hSlug string, user *db.User, newName string) error {
 
 func ToggleRemind(slug string, u *db.User) error {
 	habit, err := GetBySlug(slug, u)
+	if err != nil {
+		return err
+	}
+
+	err = paywall.ProtectRemind(u)
 	if err != nil {
 		return err
 	}

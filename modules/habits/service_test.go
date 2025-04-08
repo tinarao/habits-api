@@ -1,6 +1,7 @@
 package habits
 
 import (
+	"fmt"
 	"hbapi/internal/db"
 	"hbapi/utils"
 	"testing"
@@ -115,7 +116,7 @@ func TestGetBySlug(t *testing.T) {
 	}{
 		{
 			name: "existing habit",
-			slug: "test-habit",
+			slug: fmt.Sprintf("%d-%s", testUser.ID, "test-habit"),
 			user: testUser,
 			setup: func() *db.Habit {
 				habit, _ := Create(createDTO{Name: "Test Habit"}, testUser)
@@ -160,7 +161,7 @@ func TestRename(t *testing.T) {
 	}{
 		{
 			name:    "valid rename",
-			slug:    "test-habit",
+			slug:    fmt.Sprintf("%d-%s", testUser.ID, "test-habit"),
 			newName: "New Name",
 			user:    testUser,
 			setup: func() *db.Habit {
@@ -187,7 +188,7 @@ func TestRename(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				habit, _ := GetBySlug("new-name", tt.user)
+				habit, _ := GetBySlug(fmt.Sprintf("%d-%s", tt.user.ID, "new-name"), tt.user)
 				assert.NotNil(t, habit)
 				assert.Equal(t, tt.newName, habit.Name)
 			}
@@ -238,12 +239,12 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func cleanupTestData(t *testing.T) {
+func cleanupTestData() {
 	db.Client.Exec("DELETE FROM habits")
 }
 
 func TestMain(m *testing.M) {
 	utils.SetupTestEnv()
 	m.Run()
-	cleanupTestData(nil)
+	cleanupTestData()
 }
