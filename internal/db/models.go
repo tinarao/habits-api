@@ -10,17 +10,18 @@ const (
 )
 
 type Habit struct {
-	ID          uint      `json:"id" gorm:"primaryKey"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Remind      bool      `json:"remind" gorm:"default:false"`
-	Description *string   `json:"description"`
-	CheckIns    []CheckIn `json:"checkIns" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	IsPinned    bool      `json:"isPinned"`
-	User        User      `json:"user"`
-	UserId      uint      `json:"userId"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID            uint      `json:"id" gorm:"primaryKey"`
+	Name          string    `json:"name"`
+	Slug          string    `json:"slug"`
+	Remind        bool      `json:"remind" gorm:"default:false"`
+	Description   *string   `json:"description"`
+	CheckIns      []CheckIn `json:"checkIns" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	IsPinned      bool      `json:"isPinned"`
+	User          User      `json:"user"`
+	CheckinsColor string    `json:"checkinsColor" gorm:"default:#00c951"`
+	UserId        uint      `json:"userId"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type CheckIn struct {

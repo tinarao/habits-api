@@ -12,6 +12,7 @@ func SetupRoutes(r *gin.RouterGroup) {
 	habits := r.Group("/habits")
 
 	habits.GET("/", auth.SessionsMiddleware, getAll)
+	habits.GET("/random", auth.SessionsMiddleware, getRandom)
 	habits.GET("/slug/:slug", auth.SessionsMiddleware, getBySlug)
 	habits.GET("/pin", auth.SessionsMiddleware, getPinned)
 	habits.GET("/unchecked/:localDateIso", auth.SessionsMiddleware, getUnchecked)
@@ -20,6 +21,7 @@ func SetupRoutes(r *gin.RouterGroup) {
 	habits.POST("/", auth.SessionsMiddleware, create)
 
 	habits.PATCH("/pin/:slug", auth.SessionsMiddleware, togglePin)
+	habits.PATCH("/color/:slug/:newColor", auth.SessionsMiddleware, changeColor)
 	habits.PATCH("/remind/:slug", auth.SessionsMiddleware, toggleRemind)
 	habits.PATCH("/rename/:slug/:newName", auth.SessionsMiddleware, rename)
 
@@ -55,6 +57,22 @@ func create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Created", "habit": *created})
+}
+
+func getRandom(c *gin.Context) {
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	habit, err := GetRandomHabit(user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Failed to retrieve random habit"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"habit": habit})
 }
 
 func getAll(c *gin.Context) {
@@ -104,6 +122,25 @@ func getPinned(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"habits": habits})
+}
+
+func changeColor(c *gin.Context) {
+	user, err := auth.GetUserFromCtx(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	slug := c.Param("slug")
+	newColor := c.Param("newColor")
+
+	err = ChangeColor(slug, newColor, user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func delete(c *gin.Context) {
