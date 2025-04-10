@@ -64,7 +64,15 @@ func ChangeColor(habitSlug, newColor string, u *db.User) error {
 
 func GetRandomHabit(u *db.User) (*db.Habit, error) {
 	habit := &db.Habit{}
-	dbr := db.Client.Where("user_id = ?", u.ID).First(&habit)
+
+	dbr := db.Client.
+		Select("habits.*, COUNT(check_ins.id) as checkin_count").
+		Joins("LEFT JOIN check_ins ON habits.id = check_ins.habit_id").
+		Where("habits.user_id = ?", u.ID).
+		Group("habits.id").
+		Order("checkin_count DESC").
+		Preload("CheckIns").
+		First(&habit)
 	if dbr.Error != nil {
 		slog.Error("failed to retrieve random habit", "error", dbr.Error.Error())
 		return nil, errors.New("failed to get random habit")
@@ -109,9 +117,7 @@ func Rename(hSlug string, user *db.User, newName string) error {
 		return err
 	}
 
-	uuid, _ := gonanoid.New()
 	habit.Name = newName
-	habit.Slug = uuid
 
 	dbr := db.Client.Save(&habit)
 	if dbr.Error != nil {

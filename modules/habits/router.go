@@ -1,6 +1,7 @@
 package habits
 
 import (
+	"fmt"
 	"hbapi/modules/auth"
 	"log/slog"
 	"net/http"
@@ -131,8 +132,10 @@ func changeColor(c *gin.Context) {
 		return
 	}
 
+	// '#' symbol is problematic
+	// so the color format in url is de-#-fied hex
 	slug := c.Param("slug")
-	newColor := c.Param("newColor")
+	newColor := fmt.Sprintf("#%s", c.Param("newColor"))
 
 	err = ChangeColor(slug, newColor, user)
 	if err != nil {
